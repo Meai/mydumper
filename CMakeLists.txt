@@ -20,6 +20,25 @@ foreach (_variableName ${_variableNames})
   endif (var_lower STREQUAL "openssl_found")
 endforeach()
 
+#set(MYSQL_LIBRARIES "${MYSQL_CONFIG}/mysql_config --libs")
+
+execute_process(
+  COMMAND mysql_config --libs
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE MYSQL_LIBRARIES
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+message(${MYSQL_LIBRARIES})
+set(MYSQL_LIBRARIES "${MYSQL_LIBRARIES} -L/myinstall/percona/lib")
+message(${MYSQL_LIBRARIES})
+
+#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_INSTALL_RPATH "/myinstall/percona/lib")
+SET(CMAKE_BUILD_RPATH "/myinstall/percona/lib")
+message(${CMAKE_BUILD_RPATH})
+#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
+
 if (NOT (MYDUMPER_OPENSSL_FOUND))
   option(WITH_SSL FALSE)
   string(REPLACE "MYSQL_LIBRARIES_ssl-NOTFOUND"    "" MYSQL_LIBRARIES "${MYSQL_LIBRARIES}")
@@ -57,6 +76,7 @@ SET( ZSTD_SRCS zstd/zstd_zlibwrapper.c zstd/gzclose.c zstd/gzlib.c zstd/gzread.c
 SET( MYDUMPER_SRCS src/mydumper.c ${SHARED_SRCS} src/mydumper_pmm_thread.c src/mydumper_start_dump.c src/mydumper_jobs.c src/mydumper_common.c src/mydumper_stream.c src/mydumper_database.c src/mydumper_working_thread.c src/mydumper_daemon_thread.c src/mydumper_exec_command.c src/mydumper_masquerade.c )
 SET( MYLOADER_SRCS src/myloader.c ${SHARED_SRCS} src/myloader_pmm_thread.c src/myloader_stream.c src/myloader_stream.c src/myloader_process.c src/myloader_common.c src/myloader_jobs_manager.c src/myloader_directory.c src/myloader_restore.c src/myloader_restore_job.c src/myloader_control_job.c)
 
+
 if (WITH_ZSTD)
   add_executable(mydumper ${MYDUMPER_SRCS} ${ZSTD_SRCS})
   target_link_libraries(mydumper ${MYSQL_LIBRARIES} ${GLIB2_LIBRARIES} ${GTHREAD2_LIBRARIES} ${GIO2_LIBRARIES} ${GOBJECT2_LIBRARIES} ${PCRE_PCRE_LIBRARY} ${ZLIB_LIBRARIES} ${ZSTD_LIBRARIES} stdc++ m )
@@ -72,6 +92,7 @@ else (WITH_ZSTD)
   target_link_libraries(myloader ${MYSQL_LIBRARIES} ${GLIB2_LIBRARIES} ${GTHREAD2_LIBRARIES} ${PCRE_PCRE_LIBRARY} ${ZLIB_LIBRARIES} stdc++)
 endif (WITH_ZSTD)
 
+target_link_options(mydumper PRIVATE "LINKER:--disable-new-dtags")
 
 
 INSTALL(TARGETS mydumper myloader
